@@ -26,3 +26,8 @@ Szczegółowy opis projektu jest w pliku `AGENTS.md`.
 - **Kafka:** `localhost:9092`
 - **Baza:** `localhost:5432` (user: veturilo_user / pass: veturilo_password)
 - **Metabase:** Dostępny na `http://localhost:3000`
+
+## Jak pobrać projekt?
+1. `git clone https://github.com/TWOJA_NAZWA/veturillo-real-time-analysis.git`
+2. `cd veturillo-real-time-analysis`
+3. Dalej postępuj zgodnie z instrukcją startową (uruchomienie Docker Desktop + skrypt startowy).
