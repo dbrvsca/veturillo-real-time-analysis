@@ -1,0 +1,12 @@
+# Producent danych (Kafka)
+kafka-python-ng
+requests
+
+# Analiza danych (Data Scientist / Spark)
+pyspark
+pandas
+scikit-learn
+
+# Wizualizacja / Backend
+streamlit
+psycopg2-binary
