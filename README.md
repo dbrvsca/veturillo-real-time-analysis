@@ -2,6 +2,13 @@
 
 ## Start Projektu
 Wybierz instrukcję dla swojego systemu:
+Włączony Docker w tle
+Zainstalowany Python
+Venv dzialajacy w naszym working directory
+Mac/PC -> `python -m venv venv`
+PC -> `./venv/scripts/activate`
+Mac -> `Source ./venv/bin/activate`
+komenda do uruchomienia w terminalu: `pip install -r requirements.txt`
 
 ### Windows
 1. Otwórz PowerShell w folderze projektu.
