@@ -3,10 +3,12 @@ import requests
 import json
 from kafka import KafkaProducer
 
+import os
+
 # KONFIGURACJA
 API_KEY = '1962c7c164f5abb7612f45d57631b086' # Darmowy klucz z OpenWeatherMap
 CITY = 'Warsaw,pl'
-KAFKA_BOOTSTRAP = 'localhost:9092'
+KAFKA_BOOTSTRAP = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
 TOPIC = 'weather-raw'
 
 producer = KafkaProducer(
