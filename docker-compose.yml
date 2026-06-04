@@ -11,7 +11,7 @@ services:
     image: confluentinc/cp-kafka:7.5.0
     container_name: veturilo-kafka
     ports:
-      - "9092:9092" # Udostępniamy port 9092 dla Twoich skryptów w Pythonie na komputerze
+      - "9092:9092" # Udostępniamy port 9092 dla skryptów Python na komputerze (host)
     networks:
       - veturilo-network
     environment:
@@ -27,15 +27,22 @@ services:
       KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      KAFKA_LOG_DIRS: '/var/lib/kafka/data' # DevOps: Zmieniono na persistent ścieżkę z wolumenu
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    volumes:
+      - kafka_data:/var/lib/kafka/data # DevOps: Persystencja logów Kafki
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # --- BAZA DANYCH POSTGRESQL (Tu będą lądować gotowe dane do wykresów) ---
+  # --- BAZA DANYCH POSTGRESQL (Tu lądują gotowe dane do wykresów) ---
   postgres:
     image: postgres:15
     container_name: veturilo-postgres
     ports:
-      - "5432:5432" # Port bazy danych, z którym połączy się Metabase
+      - "5432:5432" # Port bazy danych na hoście
     networks:
       - veturilo-network
     environment:
@@ -43,8 +50,34 @@ services:
       POSTGRES_PASSWORD: veturilo_password
       POSTGRES_DB: veturilo_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data # Wolumen dla danych PostgreSQL
+      - ./postgres-init/init.sql:/docker-entrypoint-initdb.d/init.sql # DevOps: Automatyczna inicjalizacja tabel
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veturilo_user -d veturilo_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-# Wolumen sprawia, że dane zapisane w bazie nie znikną, kiedy wyłączysz komputer
+  # --- METABASE (Narzędzie BI do wizualizacji i tworzenia dashboardów) ---
+  metabase:
+    image: metabase/metabase:v0.46.6
+    container_name: veturilo-metabase
+    ports:
+      - "3000:3000" # Udostępniamy port 3000 dla przeglądarki na http://localhost:3000
+    networks:
+      - veturilo-network
+    environment:
+      MB_DB_FILE: /metabase-data/metabase.db # Ścieżka do wbudowanej bazy H2 w Metabase
+    volumes:
+      - metabase_data:/metabase-data # DevOps: Persystencja konfiguracji i dashboardów Metabase
+    depends_on:
+      postgres:
+        condition: service_healthy # Metabase włączy się dopiero, gdy Postgres będzie w pełni gotowy
+      kafka:
+        condition: service_healthy
+
+# Wolumeny sprawiają, że dane zapisane w bazie, kafce i metabase nie znikną, kiedy wyłączysz kontenery
 volumes:
   postgres_data:
+  kafka_data:
+  metabase_data:

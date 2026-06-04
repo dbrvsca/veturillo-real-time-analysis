@@ -3,8 +3,10 @@ import requests
 import json
 from kafka import KafkaProducer
 
+import os
+
 # Adres Kafki
-KAFKA_BOOTSTRAP_SERVERS = 'localhost:9092'
+KAFKA_BOOTSTRAP_SERVERS = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
 TOPIC_NAME = 'veturilo-raw'
 
 # Inicjalizacja producenta
@@ -13,7 +15,7 @@ producer = KafkaProducer(
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
 
-print("Producent Veturilo wystartował. Trwa wysyłanie danych do Kafki")
+print(f"Producent Veturilo wystartował. Trwa wysyłanie danych do Kafki ({KAFKA_BOOTSTRAP_SERVERS})")
 
 
 while True:
@@ -25,9 +27,11 @@ while True:
 
         for place in places:
             station_event = {
-                'station_id': place.get('uid'),
+                'station_id': int(place.get('uid')) if place.get('uid') is not None else None,
                 'name': place.get('name'),
-                'bikes_available': place.get('bikes'),
+                'bikes_available': int(place.get('bikes', 0)),
+                'bike_racks': int(place.get('bike_racks', 0)),
+                'free_racks': int(place.get('free_racks', 0)),
                 'timestamp': int(time.time())
             }
             producer.send(TOPIC_NAME, value=station_event)
