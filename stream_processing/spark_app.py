@@ -107,6 +107,7 @@ processed_df = joined_df.withColumn(
     col("bikes_available"),
     col("bike_racks"),
     col("free_racks"),
+    col("capacity"),
     col("occupancy_rate"),
     col("temp"),
     col("rain"),
@@ -121,9 +122,10 @@ def process_batch(batch_df, batch_id):
         
     print(f"---> Przetwarzanie micro-batcha {batch_id} ({batch_df.count()} rekordów)")
     
-    # A. Zapis pełnych danych historycznych do Postgresa
+    # A. Zapis pełnych danych historycznych do Postgresa (bez kolumny capacity, której nie ma w tabeli)
     try:
-        batch_df.write \
+        db_df = batch_df.drop("capacity")
+        db_df.write \
             .format("jdbc") \
             .option("url", JDBC_URL) \
             .option("dbtable", "station_status") \
@@ -142,9 +144,10 @@ def process_batch(batch_df, batch_id):
     if alerts_df.count() > 0:
         print(f"     [Alert] Znaleziono {alerts_df.count()} stacji o krytycznym zapełnieniu (< 10%)!")
         
-        # B1. Zapis alertów do Postgresa (dla historii)
+        # B1. Zapis alertów do Postgresa (bez kolumn free_racks i capacity, których nie ma w tabeli veturilo_alerts)
         try:
-            alerts_df.write \
+            alerts_db_df = alerts_df.drop("free_racks", "capacity")
+            alerts_db_df.write \
                 .format("jdbc") \
                 .option("url", JDBC_URL) \
                 .option("dbtable", "veturilo_alerts") \
@@ -157,7 +160,7 @@ def process_batch(batch_df, batch_id):
         except Exception as e:
             print(f"     [PostgreSQL] Błąd zapisu alertów do veturilo_alerts: {e}", file=sys.stderr)
             
-        # B2. Wysyłka alertów z powrotem na Kafkę (topic: veturilo-alerts) dla Alert Bota
+        # B2. Wysyłka alertów z powrotem na Kafkę (topic: veturilo-alerts) dla Alert Bota (razem z kolumną capacity)
         try:
             alerts_kafka_df = alerts_df.selectExpr(
                 "CAST(station_id AS STRING) AS key",
